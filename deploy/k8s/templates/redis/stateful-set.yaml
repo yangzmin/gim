@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: redis-stateful-set
+  namespace: {{ .Values.namespace | default "default" }}
+spec:
+  selector:
+    matchLabels:
+      app: redis
+  serviceName: "redis"
+  replicas: 1
+  minReadySeconds: 0
+  template:
+    metadata:
+      labels:
+        app: redis
+    spec:
+      terminationGracePeriodSeconds: 10
+      containers:
+        - name: redis
+          image: redis
+          imagePullPolicy: IfNotPresent
+          command:
+            - sh
+            - -c
+            - "exec redis-server /etc/redis/redis.conf"
+          ports:
+            - name: tcp
+              containerPort: 6379
+              hostPort: 6379
+          volumeMounts:
+            - name: localtime
+              mountPath: /etc/localtime
+            - name: redis
+              mountPath: /data
+            - name: redis-config
+              mountPath: /etc/redis/
+      volumes:
+        - name: localtime
+          hostPath:
+            path: /etc/localtime
+        - name: redis-config
+          configMap:
+            name: redis-configmap
+  volumeClaimTemplates:
+    - metadata:
+        name: redis
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        storageClassName: {{ .Values.storageClass | default "gim-database-storage" }}
+        resources:
+          requests:
+            storage: {{ .Values.redisStorage }}

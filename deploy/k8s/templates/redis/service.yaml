@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+  namespace: {{ .Values.namespace | default "default" }}
+  labels:
+    app: redis
+spec:
+  ports:
+    - name: tcp
+      protocol: TCP
+      port: 6379
+  clusterIP: None
+  selector:
+    app: redis

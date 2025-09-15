@@ -1,0 +1,138 @@
+# 阿里云专用配置文件
+env: k8s
+
+# 命名空间配置
+namespace: gim
+
+# 镜像拉取密钥配置
+imagePullSecrets:
+  - name: aliyun-registry-secret
+
+# 存储类配置 - 使用阿里云高效云盘（兼容性更好）
+storageClass: csi-alicloud-disk-efficiency
+
+# mysql存储大小
+mysqlStorage: 50Gi
+
+# redis存储大小
+redisStorage: 50Gi
+
+# 服务器配置
+server:
+  connect:
+    name: connect
+    image: registry.cn-shenzhen.aliyuncs.com/angrymiao/connect:1.0.1
+    replicas: 2  # 阿里云环境建议至少2个副本
+  logic:
+    name: logic
+    image: registry.cn-shenzhen.aliyuncs.com/angrymiao/logic:1.0.1
+    replicas: 2
+  user:
+    name: user
+    image: registry.cn-shenzhen.aliyuncs.com/angrymiao/user:1.0.1
+    replicas: 2
+  file:
+    name: file
+    image: registry.cn-shenzhen.aliyuncs.com/angrymiao/file:1.0.6
+    replicas: 1
+
+# Ingress 配置
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+  tls:
+    - secretName: angrymiao-tls
+      hosts:
+        - im.angrymiao.com
+        - im-ws.angrymiao.com
+  hosts:
+    - host: im.angrymiao.com
+      paths:
+        - path: /connect
+          pathType: Prefix
+          service:
+            name: connect
+            port: 8000
+        - path: /logic
+          pathType: Prefix
+          service:
+            name: logic
+            port: 8000
+        - path: /user
+          pathType: Prefix
+          service:
+            name: user
+            port: 8000
+        - path: /file(/|$)(.*)
+          pathType: ImplementationSpecific
+          service:
+            name: file
+            port: 8000
+    - host: im-ws.angrymiao.com
+      paths:
+        - path: /ws
+          pathType: Prefix
+          service:
+            name: connect
+            port: 8002
+
+# 阿里云特定配置
+aliyun:
+  # 镜像仓库配置
+  imageRegistry: "registry.cn-shenzhen.aliyuncs.com/angrymiao"
+  
+  # 负载均衡器配置
+  loadBalancer:
+    enabled: true
+    type: "LoadBalancer"
+    annotations:
+      service.beta.kubernetes.io/alicloud-loadbalancer-spec: "slb.s1.small"
+      service.beta.kubernetes.io/alicloud-loadbalancer-address-type: "internet"
+  
+  # 资源限制
+  resources:
+    mysql:
+      requests:
+        memory: "1Gi"
+        cpu: "500m"
+      limits:
+        memory: "2Gi"
+        cpu: "1000m"
+    redis:
+      requests:
+        memory: "512Mi"
+        cpu: "250m"
+      limits:
+        memory: "1Gi"
+        cpu: "500m"
+    connect:
+      requests:
+        memory: "256Mi"
+        cpu: "250m"
+      limits:
+        memory: "512Mi"
+        cpu: "500m"
+    logic:
+      requests:
+        memory: "256Mi"
+        cpu: "250m"
+      limits:
+        memory: "512Mi"
+        cpu: "500m"
+    user:
+      requests:
+        memory: "256Mi"
+        cpu: "250m"
+      limits:
+        memory: "512Mi"
+        cpu: "500m"
+    file:
+      requests:
+        memory: "256Mi"
+        cpu: "250m"
+      limits:
+        memory: "512Mi"
+        cpu: "500m"
