@@ -1,0 +1,271 @@
+/* 对话列表样式 */
+.conversation-list {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background-color: white;
+  border-right: 1px solid #e1e5e9;
+  width: 300px;
+  min-width: 280px;
+}
+
+.conversation-list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid #e1e5e9;
+  background-color: #f8f9fa;
+}
+
+.conversation-list-title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: #333;
+}
+
+.conversation-list-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.new-chat-btn {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background-color: transparent;
+  color: #666;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s ease-in-out;
+  font-size: 16px;
+}
+
+.new-chat-btn:hover {
+  background-color: #e2e8f0;
+}
+
+.conversation-list-content {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.conversations {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.conversation-item {
+  display: flex;
+  padding: 12px 20px;
+  cursor: pointer;
+  transition: background-color 0.2s ease-in-out;
+  border-bottom: 1px solid #f0f0f0;
+  position: relative;
+}
+
+.conversation-item:hover {
+  background-color: #f8f9fa;
+}
+
+.conversation-item.active {
+  background-color: #e6f3ff;
+  border-right: 3px solid #667eea;
+}
+
+.conversation-avatar {
+  position: relative;
+  margin-right: 12px;
+  flex-shrink: 0;
+}
+
+.avatar-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background-color: #f0f0f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+}
+
+.unread-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background-color: #f56565;
+  color: white;
+  border-radius: 10px;
+  min-width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 0 6px;
+  box-sizing: border-box;
+}
+
+.conversation-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.conversation-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.conversation-name {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 500;
+  color: #333;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+
+.conversation-time {
+  font-size: 12px;
+  color: #999;
+  flex-shrink: 0;
+}
+
+.conversation-preview {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.last-message {
+  font-size: 14px;
+  color: #666;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+
+.empty-conversations {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+}
+
+.empty-state {
+  text-align: center;
+  color: #666;
+}
+
+.empty-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+.empty-state h3 {
+  margin: 0 0 8px 0;
+  font-size: 18px;
+  color: #333;
+}
+
+.empty-state p {
+  margin: 0;
+  font-size: 14px;
+}
+
+.conversation-list-footer {
+  padding: 12px 20px;
+  border-top: 1px solid #e1e5e9;
+  background-color: #f8f9fa;
+}
+
+.connection-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #cbd5e0;
+}
+
+.status-dot.connected {
+  background-color: #48bb78;
+}
+
+.status-dot.disconnected {
+  background-color: #f56565;
+}
+
+.status-text {
+  font-size: 12px;
+  color: #666;
+}
+
+/* 滚动条样式 */
+.conversations::-webkit-scrollbar {
+  width: 6px;
+}
+
+.conversations::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.conversations::-webkit-scrollbar-thumb {
+  background: #cbd5e0;
+  border-radius: 3px;
+}
+
+.conversations::-webkit-scrollbar-thumb:hover {
+  background: #a0aec0;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .conversation-list {
+    width: 100%;
+    min-width: unset;
+  }
+
+  .conversation-list-header {
+    padding: 12px 16px;
+  }
+
+  .conversation-item {
+    padding: 12px 16px;
+  }
+
+  .avatar-icon {
+    width: 40px;
+    height: 40px;
+    font-size: 18px;
+  }
+
+  .conversation-name {
+    font-size: 15px;
+  }
+
+  .last-message {
+    font-size: 13px;
+  }
+}

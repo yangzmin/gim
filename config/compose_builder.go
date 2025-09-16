@@ -40,8 +40,10 @@ func (*composeBuilder) Build() Configuration {
 		LogicRPCListenAddr:    ":8010",
 		BusinessRPCListenAddr: ":8020",
 		FileHTTPListenAddr:    "8030",
+		GatewayHTTPListenAddr: ":8080",
 
 		LogicServerAddr:    "dns:///logic:8010",
 		BusinessServerAddr: "dns:///business:8020",
+		ConnectServerAddr:  "dns:///connect:8000",
 	}
 }

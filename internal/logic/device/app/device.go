@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"time"
 
 	"gim/internal/logic/device/domain"
 	"gim/internal/logic/device/repo"
@@ -32,6 +33,7 @@ func (*deviceApp) SignIn(ctx context.Context, request *pb.SignInRequest) error {
 	device.UserID = request.UserId
 	device.ConnectAddr = request.ConnectAddr
 	device.ClientAddr = request.ClientAddr
+	device.CreatedAt = time.Now()
 	err = repo.DeviceRepo.Save(device)
 	if err != nil {
 		return err
@@ -65,6 +67,7 @@ func (*deviceApp) Save(_ context.Context, pbdevice *pb.Device) (uint64, error) {
 		SystemVersion: pbdevice.SystemVersion,
 		SDKVersion:    pbdevice.SdkVersion,
 		BrandPushID:   pbdevice.BranchPushId,
+		CreatedAt:     time.Now(),
 	}
 
 	err := repo.DeviceRepo.Save(device)

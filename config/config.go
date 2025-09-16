@@ -39,9 +39,11 @@ type Configuration struct {
 	LogicRPCListenAddr    string
 	BusinessRPCListenAddr string
 	FileHTTPListenAddr    string
+	GatewayHTTPListenAddr string
 
 	LogicServerAddr    string
 	BusinessServerAddr string
+	ConnectServerAddr  string
 }
 
 func init() {

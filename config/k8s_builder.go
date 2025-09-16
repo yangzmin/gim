@@ -60,9 +60,11 @@ func (*k8sBuilder) Build() Configuration {
 		LogicRPCListenAddr:    RPCListenAddr,
 		BusinessRPCListenAddr: RPCListenAddr,
 		FileHTTPListenAddr:    "8005",
+		GatewayHTTPListenAddr: ":8080",
 
 		LogicServerAddr:    "k8s:///logic:8000",
 		BusinessServerAddr: "k8s:///business:8000",
+		ConnectServerAddr:  "k8s:///connect:8000",
 	}
 }
 

@@ -103,3 +103,22 @@ services:
         condition: service_started
       redis:
         condition: service_started
+
+  gateway:
+    container_name: gateway
+    restart: always
+    image: gateway:latest
+    volumes:
+      - /etc/localtime:/etc/localtime
+      - /Users/alber/data/log/gateway:/data/log/gateway
+    ports:
+      - "8080:8080"
+    environment:
+      ENV: compose
+    depends_on:
+      connect:
+        condition: service_started
+      logic:
+        condition: service_started
+      business:
+        condition: service_started

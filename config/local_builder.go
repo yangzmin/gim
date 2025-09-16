@@ -27,8 +27,10 @@ func (*localBuilder) Build() Configuration {
 		LogicRPCListenAddr:    ":8010",
 		BusinessRPCListenAddr: ":8020",
 		FileHTTPListenAddr:    "8030",
+		GatewayHTTPListenAddr: ":8080",
 
 		LogicServerAddr:    "127.0.0.1:8010",
 		BusinessServerAddr: "127.0.0.1:8020",
+		ConnectServerAddr:  "127.0.0.1:8000",
 	}
 }
