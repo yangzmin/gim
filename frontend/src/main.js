@@ -10,6 +10,9 @@ import { WS_URL } from '@/utils/constants'
 
 Vue.use(ElementUI)
 
+// 将WebSocket服务注入到Vue原型中，使所有组件都能通过this.$websocket访问
+Vue.prototype.$websocket = webSocketService
+
 Vue.config.productionTip = false
 
 /**

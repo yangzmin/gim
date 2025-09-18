@@ -39,7 +39,8 @@ export const CONNECTION_STATUS = {
   DISCONNECTED: 'disconnected',
   CONNECTING: 'connecting',
   CONNECTED: 'connected',
-  RECONNECTING: 'reconnecting'
+  RECONNECTING: 'reconnecting',
+  AUTHENTICATED: 'connected' // 认证成功后也是连接状态
 }
 
 // 响应状态码

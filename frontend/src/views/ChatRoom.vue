@@ -143,15 +143,18 @@ export default {
     },
     
     statusText() {
+      console.log("this.connectionStatus",this.connectionStatus)
       switch (this.connectionStatus) {
         case 'connected':
           return '在线'
         case 'connecting':
-          return '连接中...'
+          return '连接中'
         case 'reconnecting':
-          return '重连中...'
+          return '重连中'
         case 'disconnected':
+          return '离线'
         default:
+          console.warn('未知连接状态:', this.connectionStatus)
           return '离线'
       }
     }
@@ -174,34 +177,39 @@ export default {
      */
     async initializeApp() {
       try {
-        // 1. 获取好友列表
+        console.log('初始化应用，当前连接状态:', this.connectionStatus)
+        
+        // 获取好友列表
         await this.fetchFriendList()
-
-        // 2. 检查WebSocket连接状态，避免重复连接
-        const token = this.$store.state.auth.token
-        const currentStatus = this.connectionStatus
         
-        console.log('ChatRoom初始化 - 当前连接状态:', currentStatus)
-        console.log('ChatRoom初始化 - 是否有token:', !!token)
-        
-        if (token && currentStatus !== 'connected' && currentStatus !== 'connecting') {
-          console.log('ChatRoom: 检测到未连接状态，尝试建立WebSocket连接')
-          await this.connect({
-            url: WS_URL,
-            token: token // 只传递token，不依赖userID
-          })
-        } else if (!token) {
-          console.warn('未找到token，无法建立WebSocket连接')
-          this.$message.warning('登录状态异常，请重新登录')
-        } else {
-          console.log('ChatRoom: WebSocket已连接或正在连接中，跳过连接步骤')
+        // 检查WebSocket连接状态
+        const token = localStorage.getItem('gowebsocket_token')
+        console.log("token",token)
+        if (token) {
+          // 检查WebSocket服务的实际连接状态
+          const wsService = this.$websocket
+          const actualStatus = wsService.getConnectionStatus()
+          
+          console.log('Store连接状态:', this.connectionStatus)
+          console.log('WebSocket实际状态:', actualStatus)
+          
+          // 如果WebSocket实际已连接但store状态不对，同步状态
+          if (actualStatus === 'connected' && this.connectionStatus !== 'connected') {
+            this.$store.commit('connection/SET_CONNECTION_STATUS', 'connected')
+            console.log('同步连接状态为已连接')
+          }
+          // 如果没有连接，尝试建立连接
+          else if (actualStatus !== 'connected' && this.connectionStatus !== 'connecting') {
+            console.log('尝试建立WebSocket连接')
+            await this.connect({
+              url: WS_URL,
+              token: token
+            })
+          }
         }
       } catch (error) {
-        console.error('初始化应用失败:', error)
-        // 只有在非连接相关错误时才显示错误消息
-        if (error.message !== '正在连接中' && error.message !== 'WebSocket服务已销毁') {
-          this.$message.error('初始化失败，请刷新页面重试')
-        }
+        console.error('初始化失败:', error)
+        this.$message.error('初始化失败，请刷新页面重试')
       }
     },
 

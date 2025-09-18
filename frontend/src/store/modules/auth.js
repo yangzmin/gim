@@ -4,8 +4,8 @@ import { setToken, removeToken } from '@/utils/storage'
 const auth = {
   namespaced: true,
   state: {
-    token: localStorage.getItem('token') || null,
-    isAuthenticated: !!localStorage.getItem('token'),
+    token: localStorage.getItem('gowebsocket_token') || null,
+    isAuthenticated: !!localStorage.getItem('gowebsocket_token'),
     loginLoading: false,
     userInfo: JSON.parse(localStorage.getItem('userInfo') || 'null')
   },
