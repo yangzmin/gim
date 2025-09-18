@@ -1,5 +1,0 @@
-package local
-
-func Init() {
-
-}

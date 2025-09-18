@@ -1,0 +1,28 @@
+{
+  "name": "gowebsocket-frontend",
+  "version": "1.0.0",
+  "description": "Vue2 frontend for gowebsocket IM system",
+  "main": "index.js",
+  "scripts": {
+    "serve": "vue-cli-service serve",
+    "build": "vue-cli-service build",
+    "lint": "vue-cli-service lint"
+  },
+  "dependencies": {
+    "vue": "^2.6.14",
+    "vue-router": "^3.5.4",
+    "vuex": "^3.6.2",
+    "element-ui": "^2.15.13",
+    "axios": "^1.6.0"
+  },
+  "devDependencies": {
+    "@vue/cli-service": "^5.0.8",
+    "@vue/cli-plugin-router": "^5.0.8",
+    "@vue/cli-plugin-vuex": "^5.0.8",
+    "sass": "^1.69.5",
+    "sass-loader": "^13.3.2",
+    "vue-template-compiler": "^2.6.14"
+  },
+  "author": "",
+  "license": "MIT"
+}
