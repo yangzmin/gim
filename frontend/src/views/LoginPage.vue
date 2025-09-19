@@ -29,11 +29,10 @@
           <el-input
             v-model="loginForm.appID"
             type="text"
-            placeholder="设备AppID（自动生成）"
+            placeholder="请输入设备AppID"
             prefix-icon="el-icon-mobile-phone"
             size="large"
             :disabled="loading"
-            readonly
           >
             <template slot="append">
               <el-button 

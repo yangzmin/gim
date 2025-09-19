@@ -58,12 +58,15 @@ const auth = {
         commit('SET_LOGIN_LOADING', false)
       }
     },
-    async logout({ commit }) {
+    async logout({ commit, dispatch }) {
       try {
         await authAPI.logout()
       } catch (error) {
         console.error('登出失败:', error)
       } finally {
+        // 在用户真正退出登录时断开WebSocket连接
+        await dispatch('connection/disconnect', null, { root: true })
+        
         commit('CLEAR_AUTH')
         // 清理其他模块状态
         commit('user/CLEAR_USER_INFO', null, { root: true })

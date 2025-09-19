@@ -40,15 +40,30 @@ func Online(c *gin.Context) {
 	controllers.Response(c, common.OK, "", data)
 }
 
+// SendMessageRequest 发送消息请求结构体
+type SendMessageRequest struct {
+	AppID   string `json:"appID" binding:"required"`
+	UserID  string `json:"userID" binding:"required"`
+	MsgID   string `json:"msgID" binding:"required"`
+	Message string `json:"message" binding:"required"`
+}
+
 // SendMessage 给用户发送消息
 func SendMessage(c *gin.Context) {
-	// 获取参数
-	appID := c.PostForm("appID")
-	userID := c.PostForm("userID")
-	msgID := c.PostForm("msgID")
-	message := c.PostForm("message")
-	// appIDUint64, _ := strconv.ParseInt(appIDStr, 10, 32)
-	// appID := uint32(appIDUint64)
+	var req SendMessageRequest
+	// 绑定JSON请求参数
+	if err := c.ShouldBindJSON(&req); err != nil {
+		fmt.Printf("参数绑定失败: %v\n", err)
+		data := make(map[string]interface{})
+		controllers.Response(c, common.ParameterIllegal, "请求参数格式错误", data)
+		return
+	}
+
+	appID := req.AppID
+	userID := req.UserID
+	msgID := req.MsgID
+	message := req.Message
+
 	fmt.Println("http_request 给用户发送消息", appID, userID, msgID, message)
 
 	// TODO::进行用户权限认证，一般是客户端传入TOKEN，然后检验TOKEN是否合法，通过TOKEN解析出来用户ID
@@ -69,13 +84,20 @@ func SendMessage(c *gin.Context) {
 
 // SendMessageAll 给全员发送消息
 func SendMessageAll(c *gin.Context) {
-	// 获取参数
-	appID := c.PostForm("appID")
-	userID := c.PostForm("userID")
-	msgID := c.PostForm("msgID")
-	message := c.PostForm("message")
-	// appIDUint64, _ := strconv.ParseInt(appIDStr, 10, 32)
-	// appID := uint32(appIDUint64)
+	var req SendMessageRequest
+	// 绑定JSON请求参数
+	if err := c.ShouldBindJSON(&req); err != nil {
+		fmt.Printf("参数绑定失败: %v\n", err)
+		data := make(map[string]interface{})
+		controllers.Response(c, common.ParameterIllegal, "请求参数格式错误", data)
+		return
+	}
+
+	appID := req.AppID
+	userID := req.UserID
+	msgID := req.MsgID
+	message := req.Message
+
 	fmt.Println("http_request 给全体用户发送消息", appID, userID, msgID, message)
 	data := make(map[string]interface{})
 	if cache.SeqDuplicates(msgID) {

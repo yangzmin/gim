@@ -47,8 +47,35 @@
             <span class="send-time">{{ formatMessageTime(message.timestamp) }}</span>
           </div>
           <div class="message-bubble" :class="{ 'own': isOwnMessage(message) }">
-            <div class="bubble-content">
+            <!-- 文字消息 -->
+            <div v-if="isTextMessage(message)" class="bubble-content">
               {{ message.content }}
+            </div>
+            <!-- 音频消息 -->
+            <div v-else-if="isAudioMessage(message)" class="audio-message">
+              <div class="audio-player">
+                <el-button
+                  :icon="getAudioPlayIcon(message.messageID)"
+                  size="mini"
+                  circle
+                  @click="toggleAudioPlay(message)"
+                  :loading="audioLoading[message.messageID]"
+                />
+                <div class="audio-info">
+                  <div class="audio-duration">{{ formatAudioDuration(message.duration) }}</div>
+                  <div class="audio-format">{{ message.audioFormat || 'PCM' }}</div>
+                </div>
+                <div class="audio-waveform">
+                  <div class="waveform-bars">
+                    <span v-for="i in 8" :key="i" class="bar"></span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <!-- 其他类型消息 -->
+            <div v-else class="bubble-content">
+              <i class="el-icon-warning"></i>
+              不支持的消息类型
             </div>
           </div>
         </div>
@@ -66,6 +93,14 @@
       <div class="input-toolbar">
         <el-button size="mini" icon="el-icon-picture" circle title="发送图片"></el-button>
         <el-button size="mini" icon="el-icon-paperclip" circle title="发送文件"></el-button>
+        <el-button 
+          size="mini" 
+          :icon="recordingAudio ? 'el-icon-video-pause' : 'el-icon-microphone'" 
+          circle 
+          :type="recordingAudio ? 'danger' : 'default'"
+          :title="recordingAudio ? '停止录音' : '录制音频'"
+          @click="toggleAudioRecording"
+        ></el-button>
         <el-button size="mini" icon="el-icon-chat-dot-square" circle title="表情"></el-button>
       </div>
       <div class="input-area">
@@ -85,11 +120,21 @@
             size="small"
             :loading="sending"
             :disabled="!messageContent.trim()"
-            @click="sendMessage"
+            @click="sendTextMessage"
           >
             {{ sending ? '发送中...' : '发送' }}
           </el-button>
         </div>
+      </div>
+    </div>
+
+    <!-- 录音状态提示 -->
+    <div v-if="recordingAudio" class="recording-indicator">
+      <div class="recording-content">
+        <i class="el-icon-microphone recording-icon"></i>
+        <span>正在录音... {{ recordingDuration }}s</span>
+        <el-button size="mini" @click="stopAudioRecording">完成</el-button>
+        <el-button size="mini" type="danger" @click="cancelAudioRecording">取消</el-button>
       </div>
     </div>
   </div>
@@ -98,6 +143,7 @@
 <script>
 import { mapGetters } from 'vuex'
 import { formatMessageTime, scrollToBottom, isScrolledToBottom } from '@/utils/helpers'
+import { MESSAGE_TYPES, AUDIO_FORMATS } from '@/utils/constants'
 
 export default {
   name: 'ChatWindow',
@@ -123,7 +169,16 @@ export default {
     return {
       messageContent: '',
       autoScroll: true,
-      lastMessageCount: 0
+      lastMessageCount: 0,
+      // 音频相关状态
+      recordingAudio: false,
+      recordingDuration: 0,
+      recordingTimer: null,
+      mediaRecorder: null,
+      audioChunks: [],
+      audioPlaying: {}, // 记录正在播放的音频
+      audioLoading: {}, // 记录音频加载状态
+      currentAudio: null // 当前播放的音频对象
     }
   },
   computed: {
@@ -146,6 +201,7 @@ export default {
       handler() {
         // 切换好友时清空输入框并滚动到底部
         this.messageContent = ''
+        this.stopAllAudio()
         this.$nextTick(() => {
           this.scrollToBottom()
           this.focusInput()
@@ -158,11 +214,21 @@ export default {
     this.focusInput()
     this.scrollToBottom()
   },
+  beforeDestroy() {
+    this.stopAllAudio()
+    this.cancelAudioRecording()
+  },
   methods: {
+    /**
+     * 判断是否为自己发送的消息
+     */
     isOwnMessage(message) {
       return message.fromUserID === this.currentUser?.userID
     },
 
+    /**
+     * 获取消息发送者昵称
+     */
     getMessageNickname(message) {
       if (this.isOwnMessage(message)) {
         return this.currentUser?.nickname || '我'
@@ -170,6 +236,9 @@ export default {
       return this.friend?.nickname || `用户${message.fromUserID}`
     },
 
+    /**
+     * 获取消息发送者头像
+     */
     getMessageAvatar(message) {
       if (this.isOwnMessage(message)) {
         return this.currentUser?.avatar
@@ -177,18 +246,257 @@ export default {
       return this.friend?.avatar
     },
 
+    /**
+     * 判断是否为文字消息
+     */
+    isTextMessage(message) {
+      return !message.messageType || message.messageType === MESSAGE_TYPES.TEXT
+    },
+
+    /**
+     * 判断是否为音频消息
+     */
+    isAudioMessage(message) {
+      return message.messageType === MESSAGE_TYPES.AUDIO
+    },
+
+    /**
+     * 格式化消息时间
+     */
     formatMessageTime(timestamp) {
       return formatMessageTime(timestamp)
     },
 
-    handleKeyDown(event) {
-      if (event.ctrlKey && event.key === 'Enter') {
-        event.preventDefault()
-        this.sendMessage()
+    /**
+     * 格式化音频时长
+     */
+    formatAudioDuration(duration) {
+      if (!duration) return '0"'
+      const seconds = Math.floor(duration / 1000)
+      return `${seconds}"`
+    },
+
+    /**
+     * 获取音频播放按钮图标
+     */
+    getAudioPlayIcon(messageID) {
+      return this.audioPlaying[messageID] ? 'el-icon-video-pause' : 'el-icon-video-play'
+    },
+
+    /**
+     * 切换音频播放状态
+     */
+    async toggleAudioPlay(message) {
+      const messageID = message.messageID
+      
+      if (this.audioPlaying[messageID]) {
+        this.stopAudio(messageID)
+      } else {
+        await this.playAudio(message)
       }
     },
 
-    sendMessage() {
+    /**
+     * 播放音频消息
+     */
+    async playAudio(message) {
+      const messageID = message.messageID
+      
+      try {
+        // 停止其他正在播放的音频
+        this.stopAllAudio()
+        
+        this.$set(this.audioLoading, messageID, true)
+        
+        // 将Base64音频数据转换为Blob
+        const audioData = message.audioData || message.content
+        const byteCharacters = atob(audioData)
+        const byteNumbers = new Array(byteCharacters.length)
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i)
+        }
+        const byteArray = new Uint8Array(byteNumbers)
+        const blob = new Blob([byteArray], { type: 'audio/wav' })
+        
+        // 创建音频对象
+        const audioUrl = URL.createObjectURL(blob)
+        const audio = new Audio(audioUrl)
+        
+        this.currentAudio = audio
+        
+        // 设置音频事件监听
+        audio.onloadeddata = () => {
+          this.$set(this.audioLoading, messageID, false)
+          this.$set(this.audioPlaying, messageID, true)
+        }
+        
+        audio.onended = () => {
+          this.stopAudio(messageID)
+          URL.revokeObjectURL(audioUrl)
+        }
+        
+        audio.onerror = () => {
+          this.$set(this.audioLoading, messageID, false)
+          this.$message.error('音频播放失败')
+          URL.revokeObjectURL(audioUrl)
+        }
+        
+        // 开始播放
+        await audio.play()
+        
+      } catch (error) {
+        console.error('播放音频失败:', error)
+        this.$set(this.audioLoading, messageID, false)
+        this.$message.error('音频播放失败')
+      }
+    },
+
+    /**
+     * 停止指定音频播放
+     */
+    stopAudio(messageID) {
+      this.$set(this.audioPlaying, messageID, false)
+      if (this.currentAudio) {
+        this.currentAudio.pause()
+        this.currentAudio.currentTime = 0
+        this.currentAudio = null
+      }
+    },
+
+    /**
+     * 停止所有音频播放
+     */
+    stopAllAudio() {
+      Object.keys(this.audioPlaying).forEach(messageID => {
+        this.$set(this.audioPlaying, messageID, false)
+      })
+      if (this.currentAudio) {
+        this.currentAudio.pause()
+        this.currentAudio.currentTime = 0
+        this.currentAudio = null
+      }
+    },
+
+    /**
+     * 切换音频录制状态
+     */
+    async toggleAudioRecording() {
+      if (this.recordingAudio) {
+        this.stopAudioRecording()
+      } else {
+        await this.startAudioRecording()
+      }
+    },
+
+    /**
+     * 开始录制音频
+     */
+    async startAudioRecording() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+        
+        this.mediaRecorder = new MediaRecorder(stream)
+        this.audioChunks = []
+        this.recordingDuration = 0
+        
+        this.mediaRecorder.ondataavailable = (event) => {
+          this.audioChunks.push(event.data)
+        }
+        
+        this.mediaRecorder.onstop = () => {
+          this.processRecordedAudio()
+          stream.getTracks().forEach(track => track.stop())
+        }
+        
+        this.mediaRecorder.start()
+        this.recordingAudio = true
+        
+        // 开始计时
+        this.recordingTimer = setInterval(() => {
+          this.recordingDuration++
+        }, 1000)
+        
+      } catch (error) {
+        console.error('开始录音失败:', error)
+        this.$message.error('无法访问麦克风，请检查权限设置')
+      }
+    },
+
+    /**
+     * 停止录制音频
+     */
+    stopAudioRecording() {
+      if (this.mediaRecorder && this.recordingAudio) {
+        this.mediaRecorder.stop()
+        this.recordingAudio = false
+        
+        if (this.recordingTimer) {
+          clearInterval(this.recordingTimer)
+          this.recordingTimer = null
+        }
+      }
+    },
+
+    /**
+     * 取消录制音频
+     */
+    cancelAudioRecording() {
+      if (this.mediaRecorder && this.recordingAudio) {
+        this.mediaRecorder.stop()
+        this.recordingAudio = false
+        this.audioChunks = []
+        
+        if (this.recordingTimer) {
+          clearInterval(this.recordingTimer)
+          this.recordingTimer = null
+        }
+      }
+    },
+
+    /**
+     * 处理录制完成的音频
+     */
+    async processRecordedAudio() {
+      if (this.audioChunks.length === 0) return
+      
+      try {
+        const audioBlob = new Blob(this.audioChunks, { type: 'audio/wav' })
+        
+        // 将音频转换为Base64
+        const reader = new FileReader()
+        reader.onload = () => {
+          const base64Audio = reader.result.split(',')[1]
+          const duration = this.recordingDuration * 1000 // 转换为毫秒
+          
+          // 发送音频消息
+          this.$emit('send-audio-message', {
+            audioData: base64Audio,
+            audioFormat: AUDIO_FORMATS.PCM_16K,
+            duration: duration
+          })
+        }
+        reader.readAsDataURL(audioBlob)
+        
+      } catch (error) {
+        console.error('处理录音失败:', error)
+        this.$message.error('录音处理失败')
+      }
+    },
+
+    /**
+     * 处理键盘事件
+     */
+    handleKeyDown(event) {
+      if (event.ctrlKey && event.key === 'Enter') {
+        event.preventDefault()
+        this.sendTextMessage()
+      }
+    },
+
+    /**
+     * 发送文字消息
+     */
+    sendTextMessage() {
       const content = this.messageContent.trim()
       if (!content || this.sending) return
 
@@ -202,10 +510,16 @@ export default {
       })
     },
 
+    /**
+     * 聚焦输入框
+     */
     focusInput() {
       this.$refs.messageInput?.$refs?.textarea?.focus()
     },
 
+    /**
+     * 滚动到底部
+     */
     scrollToBottom() {
       const messageList = this.$refs.messageList
       if (messageList) {
@@ -213,6 +527,9 @@ export default {
       }
     },
 
+    /**
+     * 处理滚动事件
+     */
     handleScroll() {
       const messageList = this.$refs.messageList
       if (!messageList) return
@@ -226,6 +543,9 @@ export default {
       }
     },
 
+    /**
+     * 显示聊天菜单
+     */
     showChatMenu() {
       this.$message.info('聊天菜单功能开发中...')
     }

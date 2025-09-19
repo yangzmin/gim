@@ -2,6 +2,7 @@
 package friend
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/gin-gonic/gin"
@@ -14,32 +15,20 @@ import (
 
 // GetFriendList 获取好友列表
 func GetFriendList(c *gin.Context) {
-	token := c.GetHeader("Authorization")
-	if token == "" {
-		token = c.Query("token")
-	}
-
-	fmt.Println("API请求 获取好友列表", token)
-
 	data := make(map[string]interface{})
-
-	if token == "" {
+	userRow, exists := c.Get("userID")
+	if !exists {
 		controllers.Response(c, common.Unauthorized, "未授权访问", data)
 		return
 	}
-
-	// 验证token并获取用户ID
-	tokenKey := fmt.Sprintf("auth:token:%s", token)
-	tokenData, err := redislib.GetClient().HGetAll(c.Request.Context(), tokenKey).Result()
-	if err != nil || len(tokenData) == 0 {
-		controllers.Response(c, common.Unauthorized, "token无效", data)
+	appRow, exists := c.Get("appID")
+	if !exists {
+		controllers.Response(c, common.Unauthorized, "未授权访问", data)
 		return
 	}
-
-	userID := tokenData["userID"]
-	appID := tokenData["appID"]
-	// appIDUint64, _ := strconv.ParseInt(appIDStr, 10, 32)
-	// appID := uint32(appIDUint64)
+	appID, _ := appRow.(string)
+	userID, _ := userRow.(string)
+	fmt.Println("获取好友列表", appID, userID)
 
 	// 获取好友列表
 	friendsKey := fmt.Sprintf("user:friends:%s", userID)
@@ -52,6 +41,7 @@ func GetFriendList(c *gin.Context) {
 
 	var friends []map[string]interface{}
 
+	fmt.Println("friendIDs", friendIDs)
 	for _, friendID := range friendIDs {
 		// 获取好友基本信息
 		friendKey := fmt.Sprintf("user:profile:%s", friendID)
@@ -86,37 +76,36 @@ func GetFriendList(c *gin.Context) {
 	controllers.Response(c, common.OK, "获取成功", data)
 }
 
+// AddFriendRequest 添加好友请求结构体
+type AddFriendRequest struct {
+	FriendID string `json:"friendID" binding:"required"`
+}
+
 // AddFriend 添加好友
 func AddFriend(c *gin.Context) {
-	token := c.GetHeader("Authorization")
-	if token == "" {
-		token = c.PostForm("token")
-	}
-	friendID := c.PostForm("friendID")
-
-	fmt.Println("API请求 添加好友", token, friendID)
-
 	data := make(map[string]interface{})
-
-	if token == "" {
+	userID, exists := c.Get("userID")
+	if !exists {
 		controllers.Response(c, common.Unauthorized, "未授权访问", data)
 		return
 	}
+
+	var req AddFriendRequest
+	// 绑定JSON请求参数
+	if err := c.ShouldBindJSON(&req); err != nil {
+		fmt.Printf("参数绑定失败: %v\n", err)
+		data := make(map[string]interface{})
+		controllers.Response(c, common.ParameterIllegal, "请求参数格式错误", data)
+		return
+	}
+
+	friendID := req.FriendID
+	fmt.Println("API请求 添加好友", friendID)
 
 	if friendID == "" {
 		controllers.Response(c, common.ParameterIllegal, "好友ID不能为空", data)
 		return
 	}
-
-	// 验证token并获取用户ID
-	tokenKey := fmt.Sprintf("auth:token:%s", token)
-	tokenData, err := redislib.GetClient().HGetAll(c.Request.Context(), tokenKey).Result()
-	if err != nil || len(tokenData) == 0 {
-		controllers.Response(c, common.Unauthorized, "token无效", data)
-		return
-	}
-
-	userID := tokenData["userID"]
 
 	if userID == friendID {
 		controllers.Response(c, common.ParameterIllegal, "不能添加自己为好友", data)
@@ -190,7 +179,7 @@ func AddFriend(c *gin.Context) {
 func DeleteFriend(c *gin.Context) {
 	token := c.GetHeader("Authorization")
 	if token == "" {
-		token = c.PostForm("token")
+		token = c.Query("token")
 	}
 	friendID := c.Param("friendID")
 
@@ -240,7 +229,7 @@ func DeleteFriend(c *gin.Context) {
 func getUnreadCount(userID, friendID string) int {
 	// 这里简化实现，实际项目中应该从消息记录中统计
 	unreadKey := fmt.Sprintf("message:unread:%s:%s", userID, friendID)
-	count, err := redislib.GetClient().Get(nil, unreadKey).Int()
+	count, err := redislib.GetClient().Get(context.Background(), unreadKey).Int()
 	if err != nil {
 		return 0
 	}

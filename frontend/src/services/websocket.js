@@ -1,5 +1,5 @@
 import store from '@/store'
-import { WS_URL, WS_COMMANDS, CONNECTION_STATUS } from '@/utils/constants'
+import { WS_URL, WS_COMMANDS, CONNECTION_STATUS, MESSAGE_TYPES, AUDIO_FORMATS } from '@/utils/constants'
 import { generateId } from '@/utils/helpers'
 
 class WebSocketService {
@@ -33,9 +33,16 @@ class WebSocketService {
    */
   connect(url, token) {
     return new Promise((resolve, reject) => {
+      // 如果服务已销毁，重新初始化服务状态
       if (this.isDestroyed) {
-        reject(new Error('WebSocket服务已销毁'))
-        return
+        console.log('WebSocket服务已销毁，重新初始化...')
+        this.isDestroyed = false
+        this.ws = null
+        this.heartbeatTimer = null
+        this.reconnectTimer = null
+        this.reconnectAttempts = 0
+        this.isConnecting = false
+        this.messageQueue = []
       }
 
       if (this.isConnecting) {
@@ -137,6 +144,61 @@ class WebSocketService {
   }
 
   /**
+   * 发送文字消息
+   * @param {string} toUserID - 目标用户ID
+   * @param {string} content - 消息内容
+   * @returns {boolean} 发送是否成功
+   */
+  sendTextMessage(toUserID, content) {
+    if (!toUserID || !content) {
+      console.error('发送文字消息参数不完整')
+      return false
+    }
+
+    const messageData = {
+      seq: generateId(),
+      cmd: WS_COMMANDS.SEND_MESSAGE,
+      data: {
+        toUserID: toUserID,
+        messageType: MESSAGE_TYPES.TEXT,
+        content: content.trim(),
+        timestamp: Math.floor(Date.now() / 1000)
+      }
+    }
+
+    return this.send(messageData)
+  }
+
+  /**
+   * 发送音频消息
+   * @param {string} toUserID - 目标用户ID
+   * @param {string} audioData - Base64编码的音频数据
+   * @param {string} audioFormat - 音频格式，默认为pcm_16k
+   * @param {number} duration - 音频时长（毫秒）
+   * @returns {boolean} 发送是否成功
+   */
+  sendAudioMessage(toUserID, audioData, audioFormat = AUDIO_FORMATS.PCM_16K, duration = 0) {
+    if (!toUserID || !audioData) {
+      console.error('发送音频消息参数不完整')
+      return false
+    }
+
+    const messageData = {
+      seq: generateId(),
+      cmd: WS_COMMANDS.SEND_AUDIO_MESSAGE,
+      data: {
+        toUserID: toUserID,
+        audioData: audioData,
+        audioFormat: audioFormat,
+        duration: duration,
+        timestamp: Math.floor(Date.now() / 1000)
+      }
+    }
+
+    return this.send(messageData)
+  }
+
+  /**
    * 发送登录消息
    * @param {string} token - JWT token
    */
@@ -167,7 +229,9 @@ class WebSocketService {
     const heartbeatData = {
       seq: generateId(),
       cmd: WS_COMMANDS.HEARTBEAT,
-      data: {}
+      data: {
+        userID: this.userID || store.state.auth.user?.userID
+      }
     }
     return this.send(heartbeatData)
   }
@@ -277,13 +341,28 @@ class WebSocketService {
   handleChatMessage(response) {
     if (!response || !response.data) return
 
-    const { from, to, msg } = response.data
+    const { from, to, msg, messageType = 'text' } = response.data
+    
+    // 根据消息类型处理内容
+    let content = msg
+    let parsedContent = null
+    
+    if (messageType === MESSAGE_TYPES.AUDIO) {
+      try {
+        parsedContent = JSON.parse(msg)
+        content = parsedContent
+      } catch (error) {
+        console.error('解析音频消息内容失败:', error)
+        return
+      }
+    }
+    
     const messageObj = {
       messageID: `ws_${Date.now()}_${from}`,
       fromUserID: from,
       toUserID: to || this.userID,
-      content: msg,
-      messageType: 'text',
+      content: content,
+      messageType: messageType,
       timestamp: new Date().toISOString(),
       isRead: false
     }

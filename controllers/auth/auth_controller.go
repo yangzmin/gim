@@ -23,7 +23,7 @@ type LoginRequest struct {
 // Login 用户登录接口
 func Login(c *gin.Context) {
 	var req LoginRequest
-	
+
 	// 绑定JSON请求参数
 	if err := c.ShouldBindJSON(&req); err != nil {
 		fmt.Printf("参数绑定失败: %v\n", err)

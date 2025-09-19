@@ -14,6 +14,7 @@ const (
 	ModelStoreError    = 1008 // 存储错误
 	OperationFailure   = 1009 // 操作失败
 	RoutingNotExist    = 1010 // 路由不存在
+	NotOnline          = 1011 // 用户不在线
 )
 
 // GetErrorMessage 根据错误码 获取错误信息
@@ -32,6 +33,7 @@ func GetErrorMessage(code uint32, message string) string {
 		ModelStoreError:    "存储错误",
 		OperationFailure:   "操作失败",
 		RoutingNotExist:    "路由不存在",
+		NotOnline:          "用户不在线",
 	}
 
 	if message == "" {

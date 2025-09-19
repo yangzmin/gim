@@ -82,3 +82,11 @@ func ProcessData(client *Client, message []byte) {
 	fmt.Println("acc_response send", client.Addr, client.AppID, client.UserID, "cmd", cmd, "code", code)
 	return
 }
+
+func init() {
+	Register("ping", PingController)
+	Register("login", LoginController)
+	Register("heartbeat", HeartbeatController)
+	Register("sendMessage", SendMessageController)
+	Register("sendAudioMessage", SendAudioMessageController)
+}

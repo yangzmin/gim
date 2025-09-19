@@ -12,7 +12,8 @@ api.interceptors.request.use(
   config => {
     const token = getToken()
     if (token) {
-      config.headers.Authorization = token
+      // 修复：添加Bearer前缀以符合后端JWT中间件的期望格式
+      config.headers.Authorization = `Bearer ${token}`
     }
     return config
   },

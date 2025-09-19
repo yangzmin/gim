@@ -63,3 +63,16 @@ func SetUserOnlineInfo(userKey string, userOnline *models.UserOnline) (err error
 	}
 	return
 }
+
+// DelUserOnlineInfo 删除用户在线数据
+func DelUserOnlineInfo(userKey string) (err error) {
+	redisClient := redislib.GetClient()
+	key := getUserOnlineKey(userKey)
+	_, err = redisClient.Del(context.Background(), key).Result()
+	if err != nil {
+		fmt.Println("删除用户在线数据失败", key, err)
+		return
+	}
+	fmt.Println("删除用户在线数据成功", key)
+	return
+}

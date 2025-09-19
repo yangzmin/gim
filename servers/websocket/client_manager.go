@@ -38,8 +38,8 @@ func NewClientManager() (clientManager *ClientManager) {
 
 // GetUserKey 获取用户key
 func GetUserKey(appID string, userID string) (key string) {
-	key = fmt.Sprintf("%s_%s", appID, userID)
-	return
+	// key = fmt.Sprintf("%s_%s", appID, userID)
+	return userID
 }
 
 func (manager *ClientManager) InClient(client *Client) (ok bool) {
@@ -222,11 +222,16 @@ func (manager *ClientManager) EventUnregister(client *Client) {
 		return
 	}
 
-	// 清除redis登录数据
-	userOnline, err := cache.GetUserOnlineInfo(client.GetKey())
-	if err == nil {
-		userOnline.LogOut()
-		_ = cache.SetUserOnlineInfo(client.GetKey(), userOnline)
+	// userOnline, err := cache.GetUserOnlineInfo(client.GetKey())
+	// if err == nil {
+	// 	userOnline.LogOut()
+	// 	_ = cache.SetUserOnlineInfo(client.GetKey(), userOnline)
+	// }
+
+	// 直接删除redis在线用户数据，而不是仅标记为离线
+	err := cache.DelUserOnlineInfo(client.GetKey())
+	if err != nil {
+		fmt.Println("EventUnregister 删除用户在线数据失败", client.Addr, client.AppID, client.UserID, err)
 	}
 
 	// 关闭 chan
@@ -297,8 +302,13 @@ func GetUserClient(appID string, userID string) (client *Client) {
 func ClearTimeoutConnections() {
 	currentTime := uint64(time.Now().Unix())
 	clients := clientManager.GetClients()
+	fmt.Println("clients", clients)
 	for client := range clients {
 		if client.IsHeartbeatTimeout(currentTime) {
+			err := cache.DelUserOnlineInfo(client.GetKey())
+			if err != nil {
+				fmt.Println("ClearTimeoutConnections 定时清理超时连接失败", client.Addr, client.AppID, client.UserID, err)
+			}
 			fmt.Println("心跳时间超时 关闭连接", client.Addr, client.UserID, client.LoginTime, client.HeartbeatTime)
 			_ = client.Socket.Close()
 		}

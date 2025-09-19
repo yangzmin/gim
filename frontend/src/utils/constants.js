@@ -18,9 +18,17 @@ export const APP_CONFIG = {
 // 消息类型
 export const MESSAGE_TYPES = {
   TEXT: 'text',
+  AUDIO: 'audio',
   IMAGE: 'image',
   FILE: 'file',
   SYSTEM: 'system'
+}
+
+// 音频格式类型
+export const AUDIO_FORMATS = {
+  PCM_16K: 'pcm_16k',
+  MP3: 'mp3',
+  WAV: 'wav'
 }
 
 // WebSocket命令类型
@@ -29,6 +37,8 @@ export const WS_COMMANDS = {
   LOGOUT: 'logout',
   HEARTBEAT: 'heartbeat',
   MESSAGE: 'msg',
+  SEND_MESSAGE: 'sendMessage',
+  SEND_AUDIO_MESSAGE: 'sendAudioMessage',
   ENTER: 'enter',
   EXIT: 'exit',
   PING: 'ping'
@@ -50,5 +60,12 @@ export const API_CODES = {
   PARAMETER_ILLEGAL: 1001,
   UNAUTHORIZED_USER_ID: 1002,
   UNAUTHORIZED: 1003,
-  SERVER_ERROR: 1004
+  SERVER_ERROR: 1004,
+  NOT_DATA: 1005,
+  MODEL_ADD_ERROR: 1006,
+  MODEL_DELETE_ERROR: 1007,
+  MODEL_STORE_ERROR: 1008,
+  OPERATION_FAILURE: 1009,
+  ROUTING_NOT_EXIST: 1010,
+  NOT_ONLINE: 1011
 }

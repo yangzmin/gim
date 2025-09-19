@@ -59,6 +59,7 @@ func CheckUserOnline(appID string, userID string) (online bool) {
 func checkUserOnline(appID string, userID string) (online bool, err error) {
 	key := GetUserKey(appID, userID)
 	userOnline, err := cache.GetUserOnlineInfo(key)
+	fmt.Println("userOnline", userOnline, key)
 	if err != nil {
 		if errors.Is(err, redis.Nil) {
 			fmt.Println("GetUserOnlineInfo", appID, userID, err)

@@ -121,15 +121,35 @@ func GetChatHistory(c *gin.Context) {
 	controllers.Response(c, common.OK, "获取成功", data)
 }
 
+// SendMessageRequest 发送消息请求结构体
+type SendMessageRequest struct {
+	FriendID    string `json:"friendID" binding:"required"`
+	Content     string `json:"content" binding:"required"`
+	MessageType string `json:"messageType"`
+}
+
 // SendMessage 发送消息
 func SendMessage(c *gin.Context) {
 	token := c.GetHeader("Authorization")
 	if token == "" {
-		token = c.PostForm("token")
+		token = c.Query("token")
 	}
-	friendID := c.PostForm("friendID")
-	content := c.PostForm("content")
-	messageType := c.DefaultPostForm("messageType", "text")
+
+	var req SendMessageRequest
+	// 绑定JSON请求参数
+	if err := c.ShouldBindJSON(&req); err != nil {
+		fmt.Printf("参数绑定失败: %v\n", err)
+		data := make(map[string]interface{})
+		controllers.Response(c, common.ParameterIllegal, "请求参数格式错误", data)
+		return
+	}
+
+	friendID := req.FriendID
+	content := req.Content
+	messageType := req.MessageType
+	if messageType == "" {
+		messageType = "text"
+	}
 
 	fmt.Println("API请求 发送消息", token, friendID, content, messageType)
 
@@ -222,13 +242,28 @@ func SendMessage(c *gin.Context) {
 	controllers.Response(c, common.OK, "发送成功", data)
 }
 
+// MarkAsReadRequest 标记消息已读请求结构体
+type MarkAsReadRequest struct {
+	FriendID string `json:"friendID" binding:"required"`
+}
+
 // MarkAsRead 标记消息已读
 func MarkAsRead(c *gin.Context) {
 	token := c.GetHeader("Authorization")
 	if token == "" {
-		token = c.PostForm("token")
+		token = c.Query("token")
 	}
-	friendID := c.PostForm("friendID")
+
+	var req MarkAsReadRequest
+	// 绑定JSON请求参数
+	if err := c.ShouldBindJSON(&req); err != nil {
+		fmt.Printf("参数绑定失败: %v\n", err)
+		data := make(map[string]interface{})
+		controllers.Response(c, common.ParameterIllegal, "请求参数格式错误", data)
+		return
+	}
+
+	friendID := req.FriendID
 
 	fmt.Println("API请求 标记消息已读", token, friendID)
 

@@ -10,7 +10,7 @@ import (
 
 const (
 	// 用户连接超时时间
-	heartbeatExpirationTime = 6 * 60
+	heartbeatExpirationTime = 30
 )
 
 // 用户登录

@@ -93,6 +93,47 @@ const chat = {
         commit('SET_SENDING_MESSAGE', false)
       }
     },
+    /**
+     * 发送音频消息
+     * @param {Object} context - Vuex context
+     * @param {Object} payload - 消息数据
+     * @param {string} payload.friendID - 好友ID
+     * @param {string} payload.audioData - 音频数据（base64）
+     * @param {number} payload.duration - 音频时长（秒）
+     * @param {string} payload.format - 音频格式
+     */
+    async sendAudioMessage({ commit, dispatch }, { friendID, audioData, duration, format = 'webm' }) {
+      commit('SET_SENDING_MESSAGE', true)
+      try {
+        // 构造音频消息内容
+        const content = JSON.stringify({
+          audioData,
+          duration,
+          format
+        })
+        
+        const response = await messageAPI.sendMessage({ 
+          friendID, 
+          content, 
+          messageType: 'audio' 
+        })
+        
+        if (response.data.code === 200) {
+          const message = response.data.data.message
+          commit('ADD_MESSAGE', { friendID, message })
+          // 更新好友未读计数（对方的）
+          dispatch('friend/updateFriendUnreadCount', { userID: friendID, unreadCount: 0 }, { root: true })
+          return { success: true, message }
+        } else {
+          return { success: false, error: response.data.message }
+        }
+      } catch (error) {
+        console.error('发送音频消息失败:', error)
+        return { success: false, error: error.message || '发送音频消息失败' }
+      } finally {
+        commit('SET_SENDING_MESSAGE', false)
+      }
+    },
     async markAsRead({ commit }, friendID) {
       try {
         const response = await messageAPI.markAsRead({ friendID })

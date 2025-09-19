@@ -51,6 +51,7 @@
         :loading="loadingHistory"
         :sending="sendingMessage"
         @send-message="handleSendMessage"
+        @send-audio-message="handleSendAudioMessage"
         @load-more="handleLoadMore"
       />
       
@@ -163,8 +164,10 @@ export default {
     await this.initializeApp()
   },
   beforeDestroy() {
-    // 断开WebSocket连接
-    this.disconnect()
+    // 不在页面销毁时断开WebSocket连接
+    // WebSocket连接应该在用户真正退出登录时才断开
+    // 这样可以避免页面跳转时的连接中断问题
+    console.log('ChatRoom组件即将销毁，保持WebSocket连接')
   },
   methods: {
     ...mapActions('auth', ['logout']),
@@ -230,6 +233,9 @@ export default {
       }
     },
 
+    /**
+     * 处理发送文字消息
+     */
     async handleSendMessage(content) {
       if (!this.selectedFriend || !content.trim()) {
         return
@@ -243,6 +249,26 @@ export default {
 
       if (!result.success) {
         this.$message.error(result.error || '发送消息失败')
+      }
+    },
+
+    /**
+     * 处理发送音频消息
+     */
+    async handleSendAudioMessage(audioData) {
+      if (!this.selectedFriend || !audioData.audioData) {
+        return
+      }
+
+      const result = await this.sendAudioMessage({
+        friendID: this.selectedFriend.userID,
+        audioData: audioData.audioData,
+        audioFormat: audioData.audioFormat,
+        duration: audioData.duration
+      })
+
+      if (!result.success) {
+        this.$message.error(result.error || '发送音频消息失败')
       }
     },
 
